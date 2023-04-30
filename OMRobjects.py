@@ -89,14 +89,17 @@ class Sheet():
             system_position = self.__sort_objects(system_position)
         print(system_position)
         max_width = 0
+        min_start = float('inf')
         for i, (x, _, w, _) in enumerate(system_position):
             if x + w > max_width:
-                max_width = x+ w
+                max_width = x + w
+            if x < min_start:
+                min_start = x
         sys_pos = []
         height = 0
         for i, (x, y, w, h) in enumerate(system_position):
             if y >= height:
-                sys_pos.append([x, y, max_width - x, h])
+                sys_pos.append([min_start, y, max_width - min_start, h])
                 height = y + h
         return sys_pos
     
