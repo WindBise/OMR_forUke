@@ -44,7 +44,7 @@ class Sheet():
             
         if denoise:
             print(f'* Denoising with <cv2.fastNlMeansDenoising>...', end='')
-            self.image = cv2.fastNlMeansDenoising(sefl.image)
+            self.image = cv2.fastNlMeansDenoising(self.image)
             print('Done')
         else:
             print('* Denoising :: PASS')
@@ -69,14 +69,30 @@ class Sheet():
         position = position[idx]
         return position
     
-    def __get_system_position(self, width_threshold=0.6, sort=True):
-        _, _, stats1, _ = cv2.connectedComponentsWithStats(self.image)
-        
+    def __get_system_position(self, width_threshold=0, sort=True):
+        num_labels, labels, stats1, _ = cv2.connectedComponentsWithStats(self.image)
+        output = np.zeros((self.image.shape[0], self.image.shape[1], 3), np.uint8)
+        for i in range(1, num_labels):
+            mask = labels == i
+            output[:, :, 0][mask] = np.random.randint(0, 255)
+            output[:, :, 1][mask] = np.random.randint(0, 255)
+            output[:, :, 2][mask] = np.random.randint(0, 255)
+        plt.imshow(output, cmap='gray')
+        plt.show()
         #Overlap all objects
         mask = np.zeros(self.shape, dtype=np.uint8)
         for x, y, w, h, _ in stats1[1:]:
             mask[y:y+h, x:x+w] = 255
-        _, _, stats2, _ = cv2.connectedComponentsWithStats(mask)
+        num_labels, labels, stats2, _ = cv2.connectedComponentsWithStats(mask)
+
+        output = np.zeros((self.image.shape[0], self.image.shape[1], 3), np.uint8)
+        for i in range(1, num_labels):
+            mask = labels == i
+            output[:, :, 0][mask] = np.random.randint(0, 255)
+            output[:, :, 1][mask] = np.random.randint(0, 255)
+            output[:, :, 2][mask] = np.random.randint(0, 255)
+        plt.imshow(output, cmap='gray')
+        plt.show()
         stats2 = stats2[1:]
         
         #Filtering depends on width and height of objects
@@ -89,8 +105,9 @@ class Sheet():
             system_position = self.__sort_objects(system_position)
         return system_position
     
-    def create_system(self, sheet, width_threshold=0.6):
+    def create_system(self, sheet, width_threshold=0.1):
         sys_pos = self.__get_system_position(width_threshold=width_threshold, sort=True)
+        print(f'>>> Extracting systems : {sys_pos}')
         print(f'>>> Extracting systems : {len(sys_pos)} systems')
         systems = []
         for i, (x, y, w, h) in enumerate(sys_pos):
@@ -390,7 +407,7 @@ class Measure():
         print(f'* Measure Object Created:: Measure #{order} of System #{self.system.order} of [...{self.system.sheet.path[-10:]}] :: (x, y, w, h) = {self.basis}')
         self.staves = self.system.staves
 
-    def extract_objects(self, blur=):
+    def extract_objects(self, blur):
         _, _, stats1, _ = cv2.connectedComponentsWithStats(self.image)
         
         #Overlap all objects
