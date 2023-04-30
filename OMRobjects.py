@@ -69,30 +69,14 @@ class Sheet():
         position = position[idx]
         return position
     
-    def __get_system_position(self, width_threshold=0, sort=True):
-        num_labels, labels, stats1, _ = cv2.connectedComponentsWithStats(self.image)
-        output = np.zeros((self.image.shape[0], self.image.shape[1], 3), np.uint8)
-        for i in range(1, num_labels):
-            mask = labels == i
-            output[:, :, 0][mask] = np.random.randint(0, 255)
-            output[:, :, 1][mask] = np.random.randint(0, 255)
-            output[:, :, 2][mask] = np.random.randint(0, 255)
-        plt.imshow(output, cmap='gray')
-        plt.show()
+    def __get_system_position(self, width_threshold=0.1, sort=True):
+        _, _, stats1, _ = cv2.connectedComponentsWithStats(self.image)
         #Overlap all objects
         mask = np.zeros(self.shape, dtype=np.uint8)
         for x, y, w, h, _ in stats1[1:]:
             mask[y:y+h, x:x+w] = 255
-        num_labels, labels, stats2, _ = cv2.connectedComponentsWithStats(mask)
+        _, _, stats2, _ = cv2.connectedComponentsWithStats(mask)
 
-        output = np.zeros((self.image.shape[0], self.image.shape[1], 3), np.uint8)
-        for i in range(1, num_labels):
-            mask = labels == i
-            output[:, :, 0][mask] = np.random.randint(0, 255)
-            output[:, :, 1][mask] = np.random.randint(0, 255)
-            output[:, :, 2][mask] = np.random.randint(0, 255)
-        plt.imshow(output, cmap='gray')
-        plt.show()
         stats2 = stats2[1:]
         
         #Filtering depends on width and height of objects
@@ -103,7 +87,18 @@ class Sheet():
         system_position = stats2[idx, :4]
         if sort:
             system_position = self.__sort_objects(system_position)
-        return system_position
+        print(system_position)
+        max_width = 0
+        for i, (x, _, w, _) in enumerate(system_position):
+            if x + w > max_width:
+                max_width = x+ w
+        sys_pos = []
+        height = 0
+        for i, (x, y, w, h) in enumerate(system_position):
+            if y >= height:
+                sys_pos.append([x, y, max_width - x, h])
+                height = y + h
+        return sys_pos
     
     def create_system(self, sheet, width_threshold=0.1):
         sys_pos = self.__get_system_position(width_threshold=width_threshold, sort=True)
